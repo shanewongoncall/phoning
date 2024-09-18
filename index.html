@@ -15,26 +15,33 @@
             width: 300px;
             height: 300px;
             margin-top: 20px;
+            border-radius: 50%;
+            overflow: hidden; /* 确保图片限制在圆形范围内 */
         }
 
         .image-container img {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            object-fit: contain; /* 确保图片适配到边框区域 */
-            border-radius: 50%; /* 保证头像是圆形 */
+            max-width: none;
+            transform-origin: center; /* 设置图片缩放中心 */
         }
 
         #profile-image {
-            z-index: 1; /* 头像在下层 */
+            z-index: 1;
+            cursor: move; /* 允许用户移动图片 */
         }
 
         #overlay-image {
-            z-index: 2; /* 边框在上层 */
-            pointer-events: none; /* 防止影响操作 */
+            z-index: 2;
+            pointer-events: none;
+            border-radius: 50%; /* 确保绿色边框是圆形 */
         }
+
+        .zoom-controls {
+            margin-top: 10px;
+        }
+
     </style>
 </head>
 <body>
@@ -45,10 +52,17 @@
         <img id="overlay-image" class="overlay" src="green-border.png" alt="绿色边框" />
     </div>
 
+    <!-- 缩放控制 -->
+    <div class="zoom-controls">
+        <button id="zoom-in">放大</button>
+        <button id="zoom-out">缩小</button>
+    </div>
+
     <script>
         const uploadInput = document.getElementById('upload');
         const profileImage = document.getElementById('profile-image');
         const overlayImage = document.getElementById('overlay-image');
+        let scale = 1;
 
         uploadInput.addEventListener('change', function(event) {
             const file = event.target.files[0];
@@ -56,10 +70,23 @@
 
             reader.onload = function(e) {
                 profileImage.src = e.target.result;
+                profileImage.style.display = 'block';
                 overlayImage.style.display = 'block';
+                profileImage.style.transform = `scale(${scale})`;
             };
 
             reader.readAsDataURL(file);
+        });
+
+        // 图片缩放功能
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            scale += 0.1;
+            profileImage.style.transform = `scale(${scale})`;
+        });
+
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            scale = Math.max(0.1, scale - 0.1); // 确保不能缩小到小于0.1
+            profileImage.style.transform = `scale(${scale})`;
         });
     </script>
 </body>
