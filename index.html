@@ -112,7 +112,7 @@
             isDragging = false;
         });
 
-        // 长按保存图片功能
+        // 长按保存合成图片功能
         let longPressTimeout;
         imageContainer.addEventListener('touchstart', (event) => {
             longPressTimeout = setTimeout(() => {
@@ -128,6 +128,7 @@
             clearTimeout(longPressTimeout); // 清除长按计时器
         });
 
+        // 合成图像
         function combineImages() {
             // 清空画布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -135,7 +136,7 @@
             ctx.drawImage(profileImage, profileImage.offsetLeft, profileImage.offsetTop, profileImage.width * scale, profileImage.height * scale);
             // 绘制边框
             ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/png');
+            return canvas.toDataURL('image/png'); // 返回合成图像的Data URL
         }
 
         // 计算两点之间的距离
