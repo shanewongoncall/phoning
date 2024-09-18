@@ -14,17 +14,16 @@
             position: relative;
             width: 300px;
             height: 300px;
-            margin-top: 20px;
+            margin: 20px auto;
             border-radius: 50%;
             overflow: hidden; /* 强制图片限制在圆形区域内 */
-            cursor: grab; /* 更改鼠标指针 */
+            touch-action: none; /* 禁止默认触控动作 */
         }
 
         #profile-image {
             position: absolute;
             top: 0;
             left: 0;
-            max-width: none;
             cursor: move;
             transform-origin: center; /* 设置缩放中心 */
         }
@@ -39,10 +38,6 @@
             pointer-events: none;
             border-radius: 50%; /* 使绿色边框保持圆形 */
         }
-
-        #canvas {
-            display: none; /* 隐藏画布 */
-        }
     </style>
 </head>
 <body>
@@ -53,17 +48,14 @@
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
     </div>
 
-    <canvas id="canvas" width="300" height="300"></canvas>
-
     <script>
         const uploadInput = document.getElementById('upload');
         const profileImage = document.getElementById('profile-image');
         const imageContainer = document.getElementById('image-container');
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
         let scale = 1;
         let isDragging = false;
-        let startX, startY;
+        let startX, startY, imageX, imageY;
+        let initialDistance = 0;
 
         // 上传头像
         uploadInput.addEventListener('change', (event) => {
@@ -71,61 +63,56 @@
             const reader = new FileReader();
             reader.onload = function (e) {
                 profileImage.src = e.target.result;
+                profileImage.onload = function() {
+                    // 设置头像初始位置
+                    profileImage.style.left = '0';
+                    profileImage.style.top = '0';
+                };
             };
             reader.readAsDataURL(file);
         });
 
-        // 鼠标滚轮放大缩小
-        imageContainer.addEventListener('wheel', (event) => {
-            event.preventDefault(); // 防止页面滚动
-            if (event.deltaY < 0) {
-                scale += 0.1; // 放大
-            } else {
-                if (scale > 0.1) {
-                    scale -= 0.1; // 缩小
-                }
+        // 触摸开始
+        imageContainer.addEventListener('touchstart', (event) => {
+            if (event.touches.length === 1) {
+                isDragging = true;
+                startX = event.touches[0].clientX;
+                startY = event.touches[0].clientY;
+                imageX = profileImage.offsetLeft; // 记录当前头像位置
+                imageY = profileImage.offsetTop;
+            } else if (event.touches.length === 2) {
+                initialDistance = getDistance(event.touches);
             }
-            profileImage.style.transform = `scale(${scale})`;
         });
 
-        // 拖拽功能
-        imageContainer.addEventListener('mousedown', (event) => {
-            isDragging = true;
-            startX = event.clientX - profileImage.offsetLeft;
-            startY = event.clientY - profileImage.offsetTop;
-            imageContainer.style.cursor = 'grabbing'; // 更改鼠标指针
+        // 触摸移动
+        imageContainer.addEventListener('touchmove', (event) => {
+            if (isDragging && event.touches.length === 1) {
+                const dx = event.touches[0].clientX - startX;
+                const dy = event.touches[0].clientY - startY;
+                profileImage.style.left = `${imageX + dx}px`;
+                profileImage.style.top = `${imageY + dy}px`;
+            } else if (event.touches.length === 2) {
+                const newDistance = getDistance(event.touches);
+                const scaleChange = newDistance / initialDistance;
+                scale *= scaleChange; // 更新缩放比例
+                scale = Math.max(0.1, scale); // 确保最小缩放比例
+                profileImage.style.transform = `scale(${scale})`;
+                initialDistance = newDistance; // 更新初始距离
+            }
+            event.preventDefault(); // 阻止默认滚动
         });
 
-        document.addEventListener('mouseup', () => {
+        // 触摸结束
+        document.addEventListener('touchend', () => {
             isDragging = false;
-            imageContainer.style.cursor = 'grab'; // 恢复鼠标指针
         });
 
-        document.addEventListener('mousemove', (event) => {
-            if (isDragging) {
-                profileImage.style.left = `${event.clientX - startX}px`;
-                profileImage.style.top = `${event.clientY - startY}px`;
-            }
-        });
-
-        // 长按保存图片功能
-        imageContainer.addEventListener('contextmenu', (event) => {
-            event.preventDefault(); // 禁用右键菜单
-            const combinedImage = combineImages();
-            const link = document.createElement('a');
-            link.href = combinedImage;
-            link.download = '头像.png'; // 保存文件名
-            link.click();
-        });
-
-        function combineImages() {
-            // 清空画布
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // 绘制头像
-            ctx.drawImage(profileImage, profileImage.offsetLeft, profileImage.offsetTop, profileImage.width * scale, profileImage.height * scale);
-            // 绘制边框
-            ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/png');
+        // 计算两点之间的距离
+        function getDistance(touches) {
+            const dx = touches[0].clientX - touches[1].clientX;
+            const dy = touches[0].clientY - touches[1].clientY;
+            return Math.sqrt(dx * dx + dy * dy);
         }
     </script>
 </body>
