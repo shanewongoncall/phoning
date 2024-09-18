@@ -133,7 +133,7 @@
         function combineImages() {
             // 清空画布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // 绘制头像
+            // 绘制头像，使用当前的缩放和位置信息
             ctx.drawImage(profileImage, profileImage.offsetLeft, profileImage.offsetTop, profileImage.width * scale, profileImage.height * scale);
             // 绘制边框
             ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
