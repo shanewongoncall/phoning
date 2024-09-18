@@ -296,6 +296,10 @@
         function combineImages() {
             ctx.clearRect(0, 0, canvasSize, canvasSize);
 
+            // 设置白色背景
+            ctx.fillStyle = 'white';
+            ctx.fillRect(0, 0, canvasSize, canvasSize); // 绘制白色背景
+
             ctx.save();
             ctx.beginPath();
             ctx.arc(canvasSize / 2, canvasSize / 2, canvasSize / 2, 0, Math.PI * 2);
@@ -321,7 +325,7 @@
             overlayImage.src = document.getElementById('overlay-image').src;
             ctx.drawImage(overlayImage, 0, 0, canvasSize, canvasSize);
 
-            return canvas.toDataURL('image/png');
+            return canvas.toDataURL('image/jpeg'); // 将输出格式改为JPEG
         }
     </script>
 </body>
