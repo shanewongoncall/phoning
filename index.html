@@ -62,7 +62,7 @@
     </div>
     <button id="save-button">保存头像并下载</button>
     <div id="status-message"></div>
-    <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
+    <canvas id="canvas" style="display: none;"></canvas>
 
     <script>
         const uploadInput = document.getElementById('upload');
@@ -78,21 +78,33 @@
         let startX, startY, imageX, imageY;
         let initialDistance = 0;
 
+        // 设置canvas尺寸与图像容器相同
+        canvas.width = 300;
+        canvas.height = 300;
+
         uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             const reader = new FileReader();
             reader.onload = function (e) {
                 profileImage.src = e.target.result;
                 profileImage.onload = function() {
-                    profileImage.style.left = '0';
-                    profileImage.style.top = '0';
-                    scale = 1;
-                    profileImage.style.transform = `scale(${scale})`;
+                    resetImagePosition();
                     saveButton.disabled = false;
                 };
             };
             reader.readAsDataURL(file);
         });
+
+        function resetImagePosition() {
+            const containerSize = imageContainer.offsetWidth;
+            const imgSize = Math.min(profileImage.width, profileImage.height);
+            scale = containerSize / imgSize;
+            profileImage.style.width = `${imgSize}px`;
+            profileImage.style.height = `${imgSize}px`;
+            profileImage.style.left = `${(containerSize - imgSize) / 2}px`;
+            profileImage.style.top = `${(containerSize - imgSize) / 2}px`;
+            profileImage.style.transform = `scale(${scale})`;
+        }
 
         imageContainer.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
@@ -149,8 +161,8 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             const containerSize = canvas.width;
-            const scaledWidth = profileImage.width * scale;
-            const scaledHeight = profileImage.height * scale;
+            const imgSize = Math.min(profileImage.naturalWidth, profileImage.naturalHeight);
+            const scaledSize = imgSize * scale;
             const offsetX = parseInt(profileImage.style.left || '0');
             const offsetY = parseInt(profileImage.style.top || '0');
             
@@ -160,7 +172,17 @@
             ctx.clip();
             
             // 绘制头像
-            ctx.drawImage(profileImage, offsetX, offsetY, scaledWidth, scaledHeight);
+            ctx.drawImage(
+                profileImage,
+                (profileImage.naturalWidth - imgSize) / 2,
+                (profileImage.naturalHeight - imgSize) / 2,
+                imgSize,
+                imgSize,
+                offsetX,
+                offsetY,
+                scaledSize,
+                scaledSize
+            );
             
             // 绘制边框
             ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
