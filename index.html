@@ -16,8 +16,8 @@
             height: 300px;
             margin: 20px auto;
             border-radius: 50%;
-            overflow: hidden; /* 强制图片限制在圆形区域内 */
-            touch-action: none; /* 禁止默认触控动作 */
+            overflow: hidden;
+            touch-action: none;
         }
 
         #profile-image {
@@ -25,7 +25,7 @@
             top: 0;
             left: 0;
             cursor: move;
-            transform-origin: center; /* 设置缩放中心 */
+            transform-origin: center;
         }
 
         #overlay-image {
@@ -36,7 +36,13 @@
             height: 100%;
             z-index: 2;
             pointer-events: none;
-            border-radius: 50%; /* 使绿色边框保持圆形 */
+            border-radius: 50%;
+        }
+
+        #temp-image {
+            display: none;
+            margin-top: 20px;
+            max-width: 100%;
         }
 
         #download-button {
@@ -44,7 +50,7 @@
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
-            display: none; /* 默认隐藏下载按钮 */
+            display: none;
         }
     </style>
 </head>
@@ -56,22 +62,24 @@
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
     </div>
 
+    <img id="temp-image" alt="合成头像" />
     <button id="download-button">下载头像</button>
     <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
 
     <script>
         const uploadInput = document.getElementById('upload');
         const profileImage = document.getElementById('profile-image');
+        const overlayImage = document.getElementById('overlay-image');
         const imageContainer = document.getElementById('image-container');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        const tempImage = document.getElementById('temp-image');
         const downloadButton = document.getElementById('download-button');
         let scale = 1;
         let isDragging = false;
         let startX, startY, imageX, imageY;
         let initialDistance = 0;
 
-        // 上传头像
         uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             const reader = new FileReader();
@@ -80,27 +88,25 @@
                 profileImage.onload = function() {
                     profileImage.style.left = '0';
                     profileImage.style.top = '0';
-                    // 显示下载按钮
-                    downloadButton.style.display = 'block';
+                    scale = 1;
+                    profileImage.style.transform = `scale(${scale})`;
                 };
             };
             reader.readAsDataURL(file);
         });
 
-        // 触摸开始
         imageContainer.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
                 isDragging = true;
                 startX = event.touches[0].clientX;
                 startY = event.touches[0].clientY;
-                imageX = profileImage.offsetLeft; // 记录当前头像位置
+                imageX = profileImage.offsetLeft;
                 imageY = profileImage.offsetTop;
             } else if (event.touches.length === 2) {
                 initialDistance = getDistance(event.touches);
             }
         });
 
-        // 触摸移动
         imageContainer.addEventListener('touchmove', (event) => {
             if (isDragging && event.touches.length === 1) {
                 const dx = event.touches[0].clientX - startX;
@@ -110,45 +116,62 @@
             } else if (event.touches.length === 2) {
                 const newDistance = getDistance(event.touches);
                 const scaleChange = newDistance / initialDistance;
-                scale *= scaleChange; // 更新缩放比例
-                scale = Math.max(0.1, scale); // 确保最小缩放比例
+                scale *= scaleChange;
+                scale = Math.max(0.1, scale);
                 profileImage.style.transform = `scale(${scale})`;
-                initialDistance = newDistance; // 更新初始距离
+                initialDistance = newDistance;
             }
-            event.preventDefault(); // 阻止默认滚动
+            event.preventDefault();
         });
 
-        // 触摸结束
         document.addEventListener('touchend', () => {
             isDragging = false;
         });
 
-        // 下载头像按钮功能
-        downloadButton.addEventListener('click', () => {
-            const combinedImage = combineImages();
-            const link = document.createElement('a');
-            link.href = combinedImage;
-            link.download = '头像.png'; // 保存文件名
-            link.click();
+        let longPressTimeout;
+        imageContainer.addEventListener('touchstart', (event) => {
+            longPressTimeout = setTimeout(() => {
+                const combinedImage = combineImages();
+                tempImage.src = combinedImage;
+                tempImage.style.display = 'block';
+                downloadButton.style.display = 'block';
+            }, 500);
         });
 
-        // 合成图像
+        imageContainer.addEventListener('touchend', () => {
+            clearTimeout(longPressTimeout);
+        });
+
         function combineImages() {
-            // 清空画布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // 绘制头像，使用当前的缩放和位置信息
-            ctx.drawImage(profileImage, profileImage.offsetLeft, profileImage.offsetTop, profileImage.width * scale, profileImage.height * scale);
+            
+            // 计算缩放和位置偏移
+            const scaledWidth = profileImage.width * scale;
+            const scaledHeight = profileImage.height * scale;
+            const offsetX = parseInt(profileImage.style.left || '0');
+            const offsetY = parseInt(profileImage.style.top || '0');
+            
+            // 绘制缩放和位置调整后的头像
+            ctx.drawImage(profileImage, offsetX, offsetY, scaledWidth, scaledHeight);
+            
             // 绘制边框
             ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/png'); // 返回合成图像的Data URL
+            
+            return canvas.toDataURL('image/png');
         }
 
-        // 计算两点之间的距离
         function getDistance(touches) {
             const dx = touches[0].clientX - touches[1].clientX;
             const dy = touches[0].clientY - touches[1].clientY;
             return Math.sqrt(dx * dx + dy * dy);
         }
+
+        downloadButton.addEventListener('click', () => {
+            const link = document.createElement('a');
+            link.href = combineImages(); // 生成最新的合成图像
+            link.download = '头像.png';
+            link.click();
+        });
     </script>
 </body>
 </html>
