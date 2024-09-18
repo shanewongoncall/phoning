@@ -35,8 +35,10 @@
 
         .image-container {
             position: relative;
-            width: 567px;
-            height: 567px;
+            width: 100%; /* 设置为 100% */
+            max-width: 567px; /* 最大宽度为 567px */
+            height: auto; /* 高度自动 */
+            aspect-ratio: 1 / 1; /* 保持正方形比例 */
             margin: 20px auto;
             border-radius: 50%;
             overflow: hidden;
@@ -136,9 +138,12 @@
         let translateX = 0;
         let translateY = 0;
 
-        // 修改canvas大小为567x567
-        canvas.width = 567;
-        canvas.height = 567;
+        // canvas 的大小与容器保持一致
+        function updateCanvasSize() {
+            const containerSize = imageContainer.offsetWidth;
+            canvas.width = containerSize;
+            canvas.height = containerSize;
+        }
 
         uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -217,6 +222,7 @@
         saveButton.addEventListener('click', saveImage);
 
         function saveImage() {
+            updateCanvasSize(); // 在保存之前更新canvas大小
             const dataUrl = combineImages();
             const blob = dataURLToBlob(dataUrl);
             const file = new File([blob], "头像.png", { type: "image/png" });
