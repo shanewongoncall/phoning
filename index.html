@@ -16,20 +16,16 @@
             height: 300px;
             margin: 20px auto;
             border-radius: 50%;
-            overflow: hidden; /* 强制图片限制在圆形区域内 */
-            touch-action: none; /* 禁止默认触控动作 */
+            overflow: hidden;
+            touch-action: none;
         }
 
         #profile-image {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%; /* 让图片宽度与容器一致 */
-            height: 100%; /* 图片填充容器 */
-            object-fit: cover; /* 保持图片比例裁剪 */
             cursor: move;
-            transform-origin: center; /* 设置缩放中心 */
-            clip-path: circle(50% at 50% 50%); /* 限制头像显示在圆形区域内 */
+            transform-origin: center;
         }
 
         #overlay-image {
@@ -40,40 +36,40 @@
             height: 100%;
             z-index: 2;
             pointer-events: none;
-            border-radius: 50%; /* 使绿色边框保持圆形 */
+            border-radius: 50%;
         }
 
-        #download-button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            cursor: pointer;
+        #status-message {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
         }
     </style>
 </head>
 <body>
     <h1>上传你的头像</h1>
+    <p>上传后长按头像即可保存</p>
     <input type="file" id="upload" accept="image/*">
     <div class="image-container" id="image-container">
         <img id="profile-image" src="" alt="你的头像" />
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
     </div>
-
-    <button id="download-button">下载头像</button>
+    <div id="status-message"></div>
     <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
 
     <script>
         const uploadInput = document.getElementById('upload');
         const profileImage = document.getElementById('profile-image');
+        const overlayImage = document.getElementById('overlay-image');
+        const imageContainer = document.getElementById('image-container');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const downloadButton = document.getElementById('download-button');
+        const statusMessage = document.getElementById('status-message');
         let scale = 1;
         let isDragging = false;
         let startX, startY, imageX, imageY;
         let initialDistance = 0;
 
-        // 上传头像
         uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             const reader = new FileReader();
@@ -84,14 +80,11 @@
                     profileImage.style.top = '0';
                     scale = 1;
                     profileImage.style.transform = `scale(${scale})`;
-                    // 显示下载按钮
-                    downloadButton.style.display = 'block';
                 };
             };
             reader.readAsDataURL(file);
         });
 
-        // 触摸开始
         imageContainer.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
                 isDragging = true;
@@ -102,10 +95,11 @@
             } else if (event.touches.length === 2) {
                 initialDistance = getDistance(event.touches);
             }
+            longPressTimer = setTimeout(saveImage, 800); // 长按0.8秒触发保存
         });
 
-        // 触摸移动
         imageContainer.addEventListener('touchmove', (event) => {
+            clearTimeout(longPressTimer); // 移动时取消长按计时器
             if (isDragging && event.touches.length === 1) {
                 const dx = event.touches[0].clientX - startX;
                 const dy = event.touches[0].clientY - startY;
@@ -115,38 +109,48 @@
                 const newDistance = getDistance(event.touches);
                 const scaleChange = newDistance / initialDistance;
                 scale *= scaleChange;
-                scale = Math.max(0.5, scale); // 限制最小缩放比例
+                scale = Math.max(0.1, scale);
                 profileImage.style.transform = `scale(${scale})`;
                 initialDistance = newDistance;
             }
             event.preventDefault();
         });
 
-        // 触摸结束
-        document.addEventListener('touchend', () => {
+        imageContainer.addEventListener('touchend', () => {
             isDragging = false;
+            clearTimeout(longPressTimer); // 触摸结束时取消长按计时器
         });
 
-        // 下载头像按钮功能
-        downloadButton.addEventListener('click', () => {
-            const combinedImage = combineImages();
+        function saveImage() {
+            if (!profileImage.src) {
+                statusMessage.textContent = "请先上传图片";
+                return;
+            }
+            const dataUrl = combineImages();
             const link = document.createElement('a');
-            link.href = combinedImage;
-            link.download = '头像.png'; // 保存文件名
+            link.href = dataUrl;
+            link.download = '头像.png';
             link.click();
-        });
+            statusMessage.textContent = "图片已保存";
+            setTimeout(() => {
+                statusMessage.textContent = "";
+            }, 2000);
+        }
 
-        // 合成图像
         function combineImages() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // 绘制头像（确保缩放和位置信息正确）
-            ctx.drawImage(profileImage, 0, 0, canvas.width, canvas.height);
-            // 绘制边框
-            ctx.drawImage(document.getElementById('overlay-image'), 0, 0, canvas.width, canvas.height);
+            
+            const scaledWidth = profileImage.width * scale;
+            const scaledHeight = profileImage.height * scale;
+            const offsetX = parseInt(profileImage.style.left || '0');
+            const offsetY = parseInt(profileImage.style.top || '0');
+            
+            ctx.drawImage(profileImage, offsetX, offsetY, scaledWidth, scaledHeight);
+            ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+            
             return canvas.toDataURL('image/png');
         }
 
-        // 计算两点之间的距离
         function getDistance(touches) {
             const dx = touches[0].clientX - touches[1].clientX;
             const dy = touches[0].clientY - touches[1].clientY;
