@@ -35,10 +35,8 @@
 
         .image-container {
             position: relative;
-            width: 100%; /* 设置为 100% */
-            max-width: 567px; /* 最大宽度为 567px */
-            height: auto; /* 高度自动 */
-            aspect-ratio: 1 / 1; /* 保持正方形比例 */
+            width: 300px;
+            height: 300px;
             margin: 20px auto;
             border-radius: 50%;
             overflow: hidden;
@@ -128,6 +126,7 @@
     <canvas id="canvas" style="display: none;"></canvas>
 
     <script>
+        // JavaScript代码保持不变
         const uploadInput = document.getElementById('upload');
         const profileImage = document.getElementById('profile-image');
         const imageContainer = document.getElementById('image-container');
@@ -138,12 +137,8 @@
         let translateX = 0;
         let translateY = 0;
 
-        // canvas 的大小与容器保持一致
-        function updateCanvasSize() {
-            const containerSize = imageContainer.offsetWidth;
-            canvas.width = containerSize;
-            canvas.height = containerSize;
-        }
+        canvas.width = 300;
+        canvas.height = 300;
 
         uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -163,11 +158,13 @@
             const imgWidth = profileImage.naturalWidth;
             const imgHeight = profileImage.naturalHeight;
             const imgAspectRatio = imgWidth / imgHeight;
-            const containerAspectRatio = 1;
+            const containerAspectRatio = 1; // 容器是正方形
 
             if (imgAspectRatio > containerAspectRatio) {
+                // 图片更宽，以高度为基准
                 scale = containerSize / imgHeight;
             } else {
+                // 图片更高或等比，以宽度为基准
                 scale = containerSize / imgWidth;
             }
 
@@ -222,21 +219,18 @@
         saveButton.addEventListener('click', saveImage);
 
         function saveImage() {
-            updateCanvasSize(); // 在保存之前更新canvas大小
             const dataUrl = combineImages();
-            const blob = dataURLToBlob(dataUrl);
-            const file = new File([blob], "头像.png", { type: "image/png" });
             const link = document.createElement('a');
-            const url = URL.createObjectURL(file);
-            link.href = url;
-            link.download = file.name;
+            link.href = dataUrl;
+            link.download = '头像.png';
             link.click();
-            URL.revokeObjectURL(url);
         }
 
         function combineImages() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
             const containerSize = canvas.width;
+            
             ctx.save();
             ctx.beginPath();
             ctx.arc(containerSize / 2, containerSize / 2, containerSize / 2, 0, Math.PI * 2);
@@ -250,22 +244,12 @@
             const drawY = (containerSize - scaledHeight) / 2 + translateY;
 
             ctx.drawImage(profileImage, drawX, drawY, scaledWidth, scaledHeight);
+            
             ctx.restore();
+            
             ctx.drawImage(document.getElementById('overlay-image'), 0, 0, containerSize, containerSize);
-
+            
             return canvas.toDataURL('image/png');
-        }
-
-        function dataURLToBlob(dataUrl) {
-            const arr = dataUrl.split(',');
-            const mime = arr[0].match(/:(.*?);/)[1];
-            const bstr = atob(arr[1]);
-            let n = bstr.length;
-            const u8arr = new Uint8Array(n);
-            while (n--) {
-                u8arr[n] = bstr.charCodeAt(n);
-            }
-            return new Blob([u8arr], { type: mime });
         }
     </script>
 </body>
