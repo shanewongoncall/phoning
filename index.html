@@ -44,16 +44,23 @@
             font-style: italic;
             color: #666;
         }
+
+        #save-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <h1>上传你的头像</h1>
-    <p>上传后长按头像1.2秒即可保存</p>
     <input type="file" id="upload" accept="image/*">
     <div class="image-container" id="image-container">
         <img id="profile-image" src="" alt="你的头像" />
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
     </div>
+    <button id="save-button">保存头像并下载</button>
     <div id="status-message"></div>
     <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
 
@@ -65,11 +72,11 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const statusMessage = document.getElementById('status-message');
+        const saveButton = document.getElementById('save-button');
         let scale = 1;
         let isDragging = false;
         let startX, startY, imageX, imageY;
         let initialDistance = 0;
-        let longPressTimer;
 
         uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -77,46 +84,40 @@
             reader.onload = function (e) {
                 profileImage.src = e.target.result;
                 profileImage.onload = function() {
-                    resetImagePosition();
+                    profileImage.style.left = '0';
+                    profileImage.style.top = '0';
+                    scale = 1;
+                    profileImage.style.transform = `scale(${scale})`;
+                    saveButton.disabled = false;
                 };
             };
             reader.readAsDataURL(file);
         });
-
-        function resetImagePosition() {
-            const containerSize = imageContainer.offsetWidth;
-            const imgSize = Math.min(profileImage.width, profileImage.height);
-            scale = containerSize / imgSize;
-            profileImage.style.width = `${imgSize}px`;
-            profileImage.style.height = `${imgSize}px`;
-            profileImage.style.left = `${(containerSize - imgSize) / 2}px`;
-            profileImage.style.top = `${(containerSize - imgSize) / 2}px`;
-            profileImage.style.transform = `scale(${scale})`;
-        }
 
         imageContainer.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
                 isDragging = true;
                 startX = event.touches[0].clientX;
                 startY = event.touches[0].clientY;
-                imageX = parseInt(profileImage.style.left);
-                imageY = parseInt(profileImage.style.top);
+                imageX = profileImage.offsetLeft;
+                imageY = profileImage.offsetTop;
             } else if (event.touches.length === 2) {
                 initialDistance = getDistance(event.touches);
             }
-            longPressTimer = setTimeout(saveImage, 1200); // 长按1.2秒触发保存
         });
 
         imageContainer.addEventListener('touchmove', (event) => {
-            clearTimeout(longPressTimer); // 移动时取消长按计时器
             if (isDragging && event.touches.length === 1) {
                 const dx = event.touches[0].clientX - startX;
                 const dy = event.touches[0].clientY - startY;
-                moveImage(imageX + dx, imageY + dy);
+                profileImage.style.left = `${imageX + dx}px`;
+                profileImage.style.top = `${imageY + dy}px`;
             } else if (event.touches.length === 2) {
                 const newDistance = getDistance(event.touches);
                 const scaleChange = newDistance / initialDistance;
-                updateScale(scale * scaleChange);
+                scale *= scaleChange;
+                scale = Math.max(0.1, scale);
+                profileImage.style.transform = `scale(${scale})`;
                 initialDistance = newDistance;
             }
             event.preventDefault();
@@ -124,33 +125,9 @@
 
         imageContainer.addEventListener('touchend', () => {
             isDragging = false;
-            clearTimeout(longPressTimer); // 触摸结束时取消长按计时器
         });
 
-        function moveImage(x, y) {
-            const containerSize = imageContainer.offsetWidth;
-            const imgSize = profileImage.offsetWidth * scale;
-            const maxOffset = (imgSize - containerSize) / 2;
-            const minX = -maxOffset;
-            const maxX = containerSize - imgSize + maxOffset;
-            const minY = -maxOffset;
-            const maxY = containerSize - imgSize + maxOffset;
-
-            profileImage.style.left = `${Math.max(minX, Math.min(maxX, x))}px`;
-            profileImage.style.top = `${Math.max(minY, Math.min(maxY, y))}px`;
-        }
-
-        function updateScale(newScale) {
-            const containerSize = imageContainer.offsetWidth;
-            const imgSize = profileImage.offsetWidth;
-            const minScale = containerSize / imgSize;
-            scale = Math.max(minScale, newScale);
-            profileImage.style.transform = `scale(${scale})`;
-
-            const currentX = parseInt(profileImage.style.left);
-            const currentY = parseInt(profileImage.style.top);
-            moveImage(currentX, currentY);
-        }
+        saveButton.addEventListener('click', saveImage);
 
         function saveImage() {
             if (!profileImage.src) {
@@ -171,10 +148,11 @@
         function combineImages() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
-            const containerSize = imageContainer.offsetWidth;
-            const imgSize = profileImage.offsetWidth * scale;
-            const offsetX = parseInt(profileImage.style.left);
-            const offsetY = parseInt(profileImage.style.top);
+            const containerSize = canvas.width;
+            const scaledWidth = profileImage.width * scale;
+            const scaledHeight = profileImage.height * scale;
+            const offsetX = parseInt(profileImage.style.left || '0');
+            const offsetY = parseInt(profileImage.style.top || '0');
             
             // 创建一个圆形裁剪区域
             ctx.beginPath();
@@ -182,7 +160,7 @@
             ctx.clip();
             
             // 绘制头像
-            ctx.drawImage(profileImage, offsetX, offsetY, imgSize, imgSize);
+            ctx.drawImage(profileImage, offsetX, offsetY, scaledWidth, scaledHeight);
             
             // 绘制边框
             ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
@@ -195,6 +173,9 @@
             const dy = touches[0].clientY - touches[1].clientY;
             return Math.sqrt(dx * dx + dy * dy);
         }
+
+        // 初始化时禁用保存按钮
+        saveButton.disabled = true;
     </script>
 </body>
 </html>
