@@ -16,8 +16,8 @@
             height: 300px;
             margin: 20px auto;
             border-radius: 50%;
-            overflow: hidden; 
-            touch-action: none; 
+            overflow: hidden; /* 强制图片限制在圆形区域内 */
+            touch-action: none; /* 禁止默认触控动作 */
         }
 
         #profile-image {
@@ -25,7 +25,7 @@
             top: 0;
             left: 0;
             cursor: move;
-            transform-origin: center; 
+            transform-origin: center; /* 设置缩放中心 */
         }
 
         #overlay-image {
@@ -36,19 +36,7 @@
             height: 100%;
             z-index: 2;
             pointer-events: none;
-            border-radius: 50%; 
-        }
-
-        .tooltip {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: rgba(0, 0, 0, 0.7);
-            color: white;
-            padding: 5px;
-            border-radius: 5px;
-            display: none; /* Initially hidden */
+            border-radius: 50%; /* 使绿色边框保持圆形 */
         }
     </style>
 </head>
@@ -58,7 +46,6 @@
     <div class="image-container" id="image-container">
         <img id="profile-image" src="" alt="你的头像" />
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
-        <div class="tooltip" id="tooltip">长按保存头像</div>
     </div>
 
     <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
@@ -69,56 +56,41 @@
         const imageContainer = document.getElementById('image-container');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const tooltip = document.getElementById('tooltip');
         let scale = 1;
         let isDragging = false;
         let startX, startY, imageX, imageY;
         let initialDistance = 0;
 
-        // Function to display tooltip
-        function showTooltip() {
-            tooltip.style.display = 'block';
-        }
-
-        // Function to hide tooltip
-        function hideTooltip() {
-            tooltip.style.display = 'none';
-        }
-
-        // Function to upload image
-        function handleUpload(event) {
+        // 上传头像
+        uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function (e) {
-                    profileImage.src = e.target.result;
-                    profileImage.onload = function() {
-                        profileImage.style.left = '0';
-                        profileImage.style.top = '0';
-                    };
+            const reader = new FileReader();
+            reader.onload = function (e) {
+                profileImage.src = e.target.result;
+                profileImage.onload = function() {
+                    // 设置头像初始位置
+                    profileImage.style.left = '0';
+                    profileImage.style.top = '0';
                 };
-                reader.readAsDataURL(file);
-            } else {
-                alert('请上传有效的图片文件。');
-            }
-        }
+            };
+            reader.readAsDataURL(file);
+        });
 
-        // Function to handle touch start
-        function handleTouchStart(event) {
+        // 触摸开始
+        imageContainer.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
                 isDragging = true;
                 startX = event.touches[0].clientX;
                 startY = event.touches[0].clientY;
-                imageX = profileImage.offsetLeft;
+                imageX = profileImage.offsetLeft; // 记录当前头像位置
                 imageY = profileImage.offsetTop;
             } else if (event.touches.length === 2) {
                 initialDistance = getDistance(event.touches);
             }
-            showTooltip();
-        }
+        });
 
-        // Function to handle touch move
-        function handleTouchMove(event) {
+        // 触摸移动
+        imageContainer.addEventListener('touchmove', (event) => {
             if (isDragging && event.touches.length === 1) {
                 const dx = event.touches[0].clientX - startX;
                 const dy = event.touches[0].clientY - startY;
@@ -127,57 +99,52 @@
             } else if (event.touches.length === 2) {
                 const newDistance = getDistance(event.touches);
                 const scaleChange = newDistance / initialDistance;
-                scale *= scaleChange;
-                scale = Math.max(0.1, scale);
+                scale *= scaleChange; // 更新缩放比例
+                scale = Math.max(0.1, scale); // 确保最小缩放比例
                 profileImage.style.transform = `scale(${scale})`;
-                initialDistance = newDistance;
+                initialDistance = newDistance; // 更新初始距离
             }
-            event.preventDefault();
-        }
+            event.preventDefault(); // 阻止默认滚动
+        });
 
-        // Function to handle touch end
-        function handleTouchEnd() {
+        // 触摸结束
+        document.addEventListener('touchend', () => {
             isDragging = false;
-            hideTooltip();
-        }
+        });
 
-        // Long press save function
+        // 长按保存合成图片功能
         let longPressTimeout;
         imageContainer.addEventListener('touchstart', (event) => {
             longPressTimeout = setTimeout(() => {
-                const combinedImage = combineImages();
+                const combinedImage = combineImages(); // 生成合成图像
                 const link = document.createElement('a');
                 link.href = combinedImage;
-                link.download = '头像.png';
+                link.download = '头像.png'; // 保存文件名
                 link.click();
-            }, 500);
+            }, 500); // 500毫秒后触发长按事件
         });
 
         imageContainer.addEventListener('touchend', () => {
-            clearTimeout(longPressTimeout);
-            handleTouchEnd();
+            clearTimeout(longPressTimeout); // 清除长按计时器
         });
 
-        // Combine images function
+        // 合成图像
         function combineImages() {
+            // 清空画布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 绘制头像，使用当前的缩放和位置信息
             ctx.drawImage(profileImage, profileImage.offsetLeft, profileImage.offsetTop, profileImage.width * scale, profileImage.height * scale);
+            // 绘制边框
             ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
-            return canvas.toDataURL('image/png');
+            return canvas.toDataURL('image/png'); // 返回合成图像的Data URL
         }
 
-        // Function to get distance between two touches
+        // 计算两点之间的距离
         function getDistance(touches) {
             const dx = touches[0].clientX - touches[1].clientX;
             const dy = touches[0].clientY - touches[1].clientY;
             return Math.sqrt(dx * dx + dy * dy);
         }
-
-        // Event listeners
-        uploadInput.addEventListener('change', handleUpload);
-        imageContainer.addEventListener('touchstart', handleTouchStart);
-        imageContainer.addEventListener('touchmove', handleTouchMove);
-        document.addEventListener('touchend', handleTouchEnd);
     </script>
 </body>
 </html>
