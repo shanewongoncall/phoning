@@ -39,12 +39,6 @@
             border-radius: 50%; /* 使绿色边框保持圆形 */
         }
 
-        #temp-image {
-            display: none; /* 隐藏临时图像 */
-            margin-top: 20px;
-            max-width: 100%;
-        }
-
         #download-button {
             margin-top: 20px;
             padding: 10px 20px;
@@ -62,7 +56,6 @@
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
     </div>
 
-    <img id="temp-image" alt="合成头像" />
     <button id="download-button">下载头像</button>
     <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
 
@@ -72,7 +65,6 @@
         const imageContainer = document.getElementById('image-container');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const tempImage = document.getElementById('temp-image');
         const downloadButton = document.getElementById('download-button');
         let scale = 1;
         let isDragging = false;
@@ -88,6 +80,8 @@
                 profileImage.onload = function() {
                     profileImage.style.left = '0';
                     profileImage.style.top = '0';
+                    // 显示下载按钮
+                    downloadButton.style.display = 'block';
                 };
             };
             reader.readAsDataURL(file);
@@ -129,25 +123,22 @@
             isDragging = false;
         });
 
-        // 长按保存合成图片功能
-        let longPressTimeout;
-        imageContainer.addEventListener('touchstart', (event) => {
-            longPressTimeout = setTimeout(() => {
-                const combinedImage = combineImages();
-                tempImage.src = combinedImage; // 更新临时图像
-                tempImage.style.display = 'block'; // 显示合成图像
-                downloadButton.style.display = 'block'; // 显示下载按钮
-            }, 500); // 500毫秒后触发长按事件
-        });
-
-        imageContainer.addEventListener('touchend', () => {
-            clearTimeout(longPressTimeout); // 清除长按计时器
+        // 下载头像按钮功能
+        downloadButton.addEventListener('click', () => {
+            const combinedImage = combineImages();
+            const link = document.createElement('a');
+            link.href = combinedImage;
+            link.download = '头像.png'; // 保存文件名
+            link.click();
         });
 
         // 合成图像
         function combineImages() {
+            // 清空画布
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 绘制头像，使用当前的缩放和位置信息
             ctx.drawImage(profileImage, profileImage.offsetLeft, profileImage.offsetTop, profileImage.width * scale, profileImage.height * scale);
+            // 绘制边框
             ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
             return canvas.toDataURL('image/png'); // 返回合成图像的Data URL
         }
@@ -158,14 +149,6 @@
             const dy = touches[0].clientY - touches[1].clientY;
             return Math.sqrt(dx * dx + dy * dy);
         }
-
-        // 下载头像按钮功能
-        downloadButton.addEventListener('click', () => {
-            const link = document.createElement('a');
-            link.href = tempImage.src;
-            link.download = '头像.png'; // 保存文件名
-            link.click();
-        });
     </script>
 </body>
 </html>
