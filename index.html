@@ -302,7 +302,7 @@
 
             ctx.save();
             ctx.beginPath();
-            ctx.arc(canvasSize / 2, canvasSize / 2, canvasSize / 2, 0, Math.PI * 2);
+            ctx.arc(canvasSize / 2, canvasSize / 2, canvasSize / 2 - 15, 0, Math.PI * 2); // 保持圆形头像
             ctx.clip();
 
             const imgWidth = profileImage.naturalWidth;
