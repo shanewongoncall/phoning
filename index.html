@@ -18,7 +18,6 @@
             border-radius: 50%;
             overflow: hidden; /* 强制图片限制在圆形区域内 */
             touch-action: none; /* 禁止默认触控动作 */
-            border: 2px dashed rgba(0, 255, 0, 0.5); /* 添加虚线边框 */
         }
 
         #profile-image {
@@ -39,22 +38,6 @@
             pointer-events: none;
             border-radius: 50%; /* 使绿色边框保持圆形 */
         }
-
-        .gesture-indicator {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 16px;
-            text-align: center;
-            z-index: 3;
-            pointer-events: none; /* 不阻止触摸事件 */
-        }
-
-        .gesture-icon {
-            font-size: 24px; /* 调整图标大小 */
-        }
     </style>
 </head>
 <body>
@@ -63,16 +46,16 @@
     <div class="image-container" id="image-container">
         <img id="profile-image" src="" alt="你的头像" />
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
-        <div class="gesture-indicator">
-            <div class="gesture-icon">🤲</div>
-            <p>拖动或双指缩放</p>
-        </div>
     </div>
+
+    <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
 
     <script>
         const uploadInput = document.getElementById('upload');
         const profileImage = document.getElementById('profile-image');
         const imageContainer = document.getElementById('image-container');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
         let scale = 1;
         let isDragging = false;
         let startX, startY, imageX, imageY;
@@ -128,6 +111,32 @@
         document.addEventListener('touchend', () => {
             isDragging = false;
         });
+
+        // 长按保存图片功能
+        let longPressTimeout;
+        imageContainer.addEventListener('touchstart', (event) => {
+            longPressTimeout = setTimeout(() => {
+                const combinedImage = combineImages();
+                const link = document.createElement('a');
+                link.href = combinedImage;
+                link.download = '头像.png'; // 保存文件名
+                link.click();
+            }, 500); // 500毫秒后触发长按事件
+        });
+
+        imageContainer.addEventListener('touchend', () => {
+            clearTimeout(longPressTimeout); // 清除长按计时器
+        });
+
+        function combineImages() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // 绘制头像
+            ctx.drawImage(profileImage, profileImage.offsetLeft, profileImage.offsetTop, profileImage.width * scale, profileImage.height * scale);
+            // 绘制边框
+            ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+            return canvas.toDataURL('image/png');
+        }
 
         // 计算两点之间的距离
         function getDistance(touches) {
