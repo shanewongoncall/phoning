@@ -22,10 +22,11 @@
 
         #profile-image {
             position: absolute;
-            top: 0;
-            left: 0;
-            cursor: move;
-            transform-origin: center;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: none;
+            max-height: none;
         }
 
         #overlay-image {
@@ -36,13 +37,6 @@
             height: 100%;
             z-index: 2;
             pointer-events: none;
-            border-radius: 50%;
-        }
-
-        #status-message {
-            margin-top: 10px;
-            font-style: italic;
-            color: #666;
         }
 
         #save-button {
@@ -60,25 +54,20 @@
         <img id="profile-image" src="" alt="你的头像" />
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
     </div>
-    <button id="save-button">保存头像并下载</button>
-    <div id="status-message"></div>
+    <button id="save-button" disabled>保存头像并下载</button>
     <canvas id="canvas" style="display: none;"></canvas>
 
     <script>
         const uploadInput = document.getElementById('upload');
         const profileImage = document.getElementById('profile-image');
-        const overlayImage = document.getElementById('overlay-image');
         const imageContainer = document.getElementById('image-container');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
-        const statusMessage = document.getElementById('status-message');
         const saveButton = document.getElementById('save-button');
         let scale = 1;
-        let isDragging = false;
-        let startX, startY, imageX, imageY;
-        let initialDistance = 0;
+        let translateX = 0;
+        let translateY = 0;
 
-        // 设置canvas尺寸与图像容器相同
         canvas.width = 300;
         canvas.height = 300;
 
@@ -88,49 +77,38 @@
             reader.onload = function (e) {
                 profileImage.src = e.target.result;
                 profileImage.onload = function() {
-                    resetImagePosition();
+                    fitImageToContainer();
                     saveButton.disabled = false;
                 };
             };
             reader.readAsDataURL(file);
         });
 
-        function resetImagePosition() {
+        function fitImageToContainer() {
             const containerSize = imageContainer.offsetWidth;
-            const imgSize = Math.min(profileImage.width, profileImage.height);
+            const imgSize = Math.max(profileImage.width, profileImage.height);
             scale = containerSize / imgSize;
             profileImage.style.width = `${imgSize}px`;
             profileImage.style.height = `${imgSize}px`;
-            profileImage.style.left = `${(containerSize - imgSize) / 2}px`;
-            profileImage.style.top = `${(containerSize - imgSize) / 2}px`;
-            profileImage.style.transform = `scale(${scale})`;
+            profileImage.style.transform = `translate(-50%, -50%) scale(${scale})`;
         }
+
+        let isDragging = false;
+        let startX, startY;
 
         imageContainer.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
                 isDragging = true;
-                startX = event.touches[0].clientX;
-                startY = event.touches[0].clientY;
-                imageX = profileImage.offsetLeft;
-                imageY = profileImage.offsetTop;
-            } else if (event.touches.length === 2) {
-                initialDistance = getDistance(event.touches);
+                startX = event.touches[0].clientX - translateX;
+                startY = event.touches[0].clientY - translateY;
             }
         });
 
         imageContainer.addEventListener('touchmove', (event) => {
             if (isDragging && event.touches.length === 1) {
-                const dx = event.touches[0].clientX - startX;
-                const dy = event.touches[0].clientY - startY;
-                profileImage.style.left = `${imageX + dx}px`;
-                profileImage.style.top = `${imageY + dy}px`;
-            } else if (event.touches.length === 2) {
-                const newDistance = getDistance(event.touches);
-                const scaleChange = newDistance / initialDistance;
-                scale *= scaleChange;
-                scale = Math.max(0.1, scale);
-                profileImage.style.transform = `scale(${scale})`;
-                initialDistance = newDistance;
+                translateX = event.touches[0].clientX - startX;
+                translateY = event.touches[0].clientY - startY;
+                updateImagePosition();
             }
             event.preventDefault();
         });
@@ -139,65 +117,43 @@
             isDragging = false;
         });
 
+        function updateImagePosition() {
+            profileImage.style.transform = `translate(calc(-50% + ${translateX}px), calc(-50% + ${translateY}px)) scale(${scale})`;
+        }
+
         saveButton.addEventListener('click', saveImage);
 
         function saveImage() {
-            if (!profileImage.src) {
-                statusMessage.textContent = "请先上传图片";
-                return;
-            }
             const dataUrl = combineImages();
             const link = document.createElement('a');
             link.href = dataUrl;
             link.download = '头像.png';
             link.click();
-            statusMessage.textContent = "图片已保存";
-            setTimeout(() => {
-                statusMessage.textContent = "";
-            }, 2000);
         }
 
         function combineImages() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             
             const containerSize = canvas.width;
-            const imgSize = Math.min(profileImage.naturalWidth, profileImage.naturalHeight);
-            const scaledSize = imgSize * scale;
-            const offsetX = parseInt(profileImage.style.left || '0');
-            const offsetY = parseInt(profileImage.style.top || '0');
             
-            // 创建一个圆形裁剪区域
+            ctx.save();
             ctx.beginPath();
             ctx.arc(containerSize / 2, containerSize / 2, containerSize / 2, 0, Math.PI * 2);
             ctx.clip();
+
+            const imgSize = Math.max(profileImage.naturalWidth, profileImage.naturalHeight);
+            const scaledSize = imgSize * scale;
+            const drawX = (containerSize - scaledSize) / 2 + translateX;
+            const drawY = (containerSize - scaledSize) / 2 + translateY;
+
+            ctx.drawImage(profileImage, drawX, drawY, scaledSize, scaledSize);
             
-            // 绘制头像
-            ctx.drawImage(
-                profileImage,
-                (profileImage.naturalWidth - imgSize) / 2,
-                (profileImage.naturalHeight - imgSize) / 2,
-                imgSize,
-                imgSize,
-                offsetX,
-                offsetY,
-                scaledSize,
-                scaledSize
-            );
+            ctx.restore();
             
-            // 绘制边框
-            ctx.drawImage(overlayImage, 0, 0, canvas.width, canvas.height);
+            ctx.drawImage(document.getElementById('overlay-image'), 0, 0, containerSize, containerSize);
             
             return canvas.toDataURL('image/png');
         }
-
-        function getDistance(touches) {
-            const dx = touches[0].clientX - touches[1].clientX;
-            const dy = touches[0].clientY - touches[1].clientY;
-            return Math.sqrt(dx * dx + dy * dy);
-        }
-
-        // 初始化时禁用保存按钮
-        saveButton.disabled = true;
     </script>
 </body>
 </html>
