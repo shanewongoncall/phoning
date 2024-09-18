@@ -146,15 +146,11 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function (e) {
-                    const img = new Image();
-                    img.onload = function() {
-                        profileImage.src = e.target.result;
-                        profileImage.onload = function() {
-                            fitImageToContainer();
-                            generateButton.disabled = false;
-                        };
+                    profileImage.src = e.target.result;
+                    profileImage.onload = function() {
+                        fitImageToContainer();
+                        generateButton.disabled = false;
                     };
-                    img.src = e.target.result;
                 };
                 reader.readAsDataURL(file);
             }
@@ -300,11 +296,16 @@
             const containerSize = CANVAS_SIZE;
             ctx.clearRect(0, 0, containerSize, containerSize);
             
-            // 创建圆形裁剪区域
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(containerSize / 2, containerSize / 2, containerSize / 2, 0, Math.PI * 2);
-            ctx.clip();
+            // 创建一个临时的canvas来绘制裁剪后的头像
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = containerSize;
+            tempCanvas.height = containerSize;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            // 在临时canvas上创建圆形裁剪区域
+            tempCtx.beginPath();
+            tempCtx.arc(containerSize / 2, containerSize / 2, containerSize / 2, 0, Math.PI * 2);
+            tempCtx.clip();
 
             // 计算图片在canvas中的位置和大小
             const imgWidth = profileImage.naturalWidth;
@@ -314,10 +315,11 @@
             const drawX = containerSize / 2 - scaledWidth / 2 + translateX * (containerSize / 300);
             const drawY = containerSize / 2 - scaledHeight / 2 + translateY * (containerSize / 300);
 
-            // 绘制头像
-            ctx.drawImage(profileImage, drawX, drawY, scaledWidth, scaledHeight);
-            
-            ctx.restore();
+            // 在临时canvas上绘制头像
+            tempCtx.drawImage(profileImage, drawX, drawY, scaledWidth, scaledHeight);
+
+            // 将临时canvas的内容绘制到主canvas上
+            ctx.drawImage(tempCanvas, 0, 0);
             
             // 绘制边框
             const overlay = document.getElementById('overlay-image');
