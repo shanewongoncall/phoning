@@ -35,8 +35,8 @@
 
         .image-container {
             position: relative;
-            width: 300px;
-            height: 300px;
+            width: 567px;
+            height: 567px;
             margin: 20px auto;
             border-radius: 50%;
             overflow: hidden;
@@ -110,13 +110,6 @@
         .upload-label:hover {
             background-color: #007B9A;
         }
-
-        #instructions {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #666;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
@@ -128,10 +121,7 @@
             <img id="profile-image" src="" alt="" />
             <img id="overlay-image" src="green-border.png" alt="绿色边框" />
         </div>
-        <button id="save-button" class="button" disabled>保存头像</button>
-        <div id="instructions" style="display: none;">
-            提示：在大多数移动设备上，您可以长按图片并选择"保存图像"来将头像保存到相册。
-        </div>
+        <button id="save-button" class="button" disabled>保存头像并下载</button>
     </div>
     <canvas id="canvas" style="display: none;"></canvas>
 
@@ -142,13 +132,13 @@
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
         const saveButton = document.getElementById('save-button');
-        const instructions = document.getElementById('instructions');
         let scale = 1;
         let translateX = 0;
         let translateY = 0;
 
-        canvas.width = 300;
-        canvas.height = 300;
+        // 修改canvas大小为567x567
+        canvas.width = 567;
+        canvas.height = 567;
 
         uploadInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
@@ -168,13 +158,11 @@
             const imgWidth = profileImage.naturalWidth;
             const imgHeight = profileImage.naturalHeight;
             const imgAspectRatio = imgWidth / imgHeight;
-            const containerAspectRatio = 1; // 容器是正方形
+            const containerAspectRatio = 1;
 
             if (imgAspectRatio > containerAspectRatio) {
-                // 图片更宽，以高度为基准
                 scale = containerSize / imgHeight;
             } else {
-                // 图片更高或等比，以宽度为基准
                 scale = containerSize / imgWidth;
             }
 
@@ -230,18 +218,19 @@
 
         function saveImage() {
             const dataUrl = combineImages();
+            const blob = dataURLToBlob(dataUrl);
+            const file = new File([blob], "头像.png", { type: "image/png" });
             const link = document.createElement('a');
-            link.href = dataUrl;
-            link.download = 'phoning-avatar.png';
+            const url = URL.createObjectURL(file);
+            link.href = url;
+            link.download = file.name;
             link.click();
-            instructions.style.display = 'block';
+            URL.revokeObjectURL(url);
         }
 
         function combineImages() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
             const containerSize = canvas.width;
-            
             ctx.save();
             ctx.beginPath();
             ctx.arc(containerSize / 2, containerSize / 2, containerSize / 2, 0, Math.PI * 2);
@@ -255,12 +244,22 @@
             const drawY = (containerSize - scaledHeight) / 2 + translateY;
 
             ctx.drawImage(profileImage, drawX, drawY, scaledWidth, scaledHeight);
-            
             ctx.restore();
-            
             ctx.drawImage(document.getElementById('overlay-image'), 0, 0, containerSize, containerSize);
-            
+
             return canvas.toDataURL('image/png');
+        }
+
+        function dataURLToBlob(dataUrl) {
+            const arr = dataUrl.split(',');
+            const mime = arr[0].match(/:(.*?);/)[1];
+            const bstr = atob(arr[1]);
+            let n = bstr.length;
+            const u8arr = new Uint8Array(n);
+            while (n--) {
+                u8arr[n] = bstr.charCodeAt(n);
+            }
+            return new Blob([u8arr], { type: mime });
         }
     </script>
 </body>
