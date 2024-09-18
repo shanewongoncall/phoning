@@ -300,11 +300,6 @@
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvasSize, canvasSize); // 绘制白色背景
 
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(canvasSize / 2, canvasSize / 2, (canvasSize / 2) - 15, 0, Math.PI * 2); // 保持圆形头像
-            ctx.clip();
-
             const imgWidth = profileImage.naturalWidth;
             const imgHeight = profileImage.naturalHeight;
 
@@ -313,12 +308,12 @@
 
             const scaledWidth = imgWidth * scale * scaleFactor;
             const scaledHeight = imgHeight * scale * scaleFactor;
-            const drawX = (canvasSize - scaledWidth) / 2 + translateX * scaleFactor;
-            const drawY = (canvasSize - scaledHeight) / 2 + translateY * scaleFactor;
+
+            // 计算头像居中位置，保持一定的边距
+            const drawX = (canvasSize - scaledWidth) / 2;
+            const drawY = (canvasSize - scaledHeight) / 2;
 
             ctx.drawImage(profileImage, drawX, drawY, scaledWidth, scaledHeight);
-
-            ctx.restore();
 
             // 创建新的Image对象以确保高分辨率
             const overlayImage = new Image();
