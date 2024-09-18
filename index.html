@@ -38,6 +38,13 @@
             pointer-events: none;
             border-radius: 50%; /* 使绿色边框保持圆形 */
         }
+
+        #download-button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -48,6 +55,7 @@
         <img id="overlay-image" src="green-border.png" alt="绿色边框" />
     </div>
 
+    <button id="download-button">下载头像</button>
     <canvas id="canvas" width="300" height="300" style="display: none;"></canvas>
 
     <script>
@@ -112,20 +120,13 @@
             isDragging = false;
         });
 
-        // 长按保存合成图片功能
-        let longPressTimeout;
-        imageContainer.addEventListener('touchstart', (event) => {
-            longPressTimeout = setTimeout(() => {
-                const combinedImage = combineImages();
-                const link = document.createElement('a');
-                link.href = combinedImage;
-                link.download = '头像.png'; // 保存文件名
-                link.click();
-            }, 500); // 500毫秒后触发长按事件
-        });
-
-        imageContainer.addEventListener('touchend', () => {
-            clearTimeout(longPressTimeout); // 清除长按计时器
+        // 下载头像按钮功能
+        document.getElementById('download-button').addEventListener('click', () => {
+            const combinedImage = combineImages();
+            const link = document.createElement('a');
+            link.href = combinedImage;
+            link.download = '头像.png'; // 保存文件名
+            link.click();
         });
 
         // 合成图像
