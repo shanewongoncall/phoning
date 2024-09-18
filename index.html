@@ -142,8 +142,8 @@
         let translateY = 0;
 
         const containerSize = 300; // 显示容器的尺寸
-        const canvasSize = 1000; // Canvas实际尺寸，减少背景大小
-        const avatarSize = 900;   // 头像实际尺寸，增大头像尺寸
+        const canvasSize = 1200; // Canvas实际尺寸，增加清晰度和背景大小
+        const avatarSize = 800;   // 头像实际尺寸
         const dpr = window.devicePixelRatio || 1; // 设备像素比
 
         // 设置Canvas尺寸并考虑设备像素比
@@ -231,7 +231,7 @@
         function generateImage() {
             const dataUrl = combineImages();
             const newWindow = window.open();
-            newWindow.document.write(\`
+            newWindow.document.write(`
                 <!DOCTYPE html>
                 <html lang="zh">
                 <head>
@@ -277,12 +277,12 @@
                 </head>
                 <body>
                     <div class="avatar-container">
-                        <img src="\${dataUrl}" alt="生成的头像">
+                        <img src="${dataUrl}" alt="生成的头像">
                         <p>长按图片保存头像</p>
                     </div>
                 </body>
                 </html>
-            \`);
+            `);
             newWindow.document.close();
         }
 
@@ -293,7 +293,7 @@
             ctx.fillStyle = 'white';
             ctx.fillRect(0, 0, canvasSize, canvasSize);
 
-            // 计算头像在画布中的位置，使其居中并留有较小的边距
+            // 计算头像在画布中的位置，使其居中并留有足够的边距
             const centerX = canvasSize / 2;
             const centerY = canvasSize / 2;
             const avatarRadius = avatarSize / 2;
