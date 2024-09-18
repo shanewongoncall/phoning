@@ -23,7 +23,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover; /* 保证图片适配 */
+            object-fit: contain; /* 确保图片适配到边框区域 */
             border-radius: 50%; /* 保证头像是圆形 */
         }
 
@@ -35,7 +35,6 @@
             z-index: 2; /* 边框在上层 */
             pointer-events: none; /* 防止影响操作 */
         }
-
     </style>
 </head>
 <body>
