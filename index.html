@@ -137,7 +137,6 @@
         let translateX = 0;
         let translateY = 0;
 
-        // 设置一个适中的canvas分辨率
         const CANVAS_SIZE = 600;
         canvas.width = CANVAS_SIZE;
         canvas.height = CANVAS_SIZE;
@@ -149,9 +148,7 @@
                 reader.onload = function (e) {
                     const img = new Image();
                     img.onload = function() {
-                        // 在内存中调整图片大小，以提高性能
-                        const resizedImage = resizeImage(img, CANVAS_SIZE);
-                        profileImage.src = resizedImage;
+                        profileImage.src = e.target.result;
                         profileImage.onload = function() {
                             fitImageToContainer();
                             generateButton.disabled = false;
@@ -162,30 +159,6 @@
                 reader.readAsDataURL(file);
             }
         });
-
-        function resizeImage(img, maxSize) {
-            const tempCanvas = document.createElement('canvas');
-            const tempCtx = tempCanvas.getContext('2d');
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-                if (width > maxSize) {
-                    height *= maxSize / width;
-                    width = maxSize;
-                }
-            } else {
-                if (height > maxSize) {
-                    width *= maxSize / height;
-                    height = maxSize;
-                }
-            }
-
-            tempCanvas.width = width;
-            tempCanvas.height = height;
-            tempCtx.drawImage(img, 0, 0, width, height);
-            return tempCanvas.toDataURL('image/jpeg');
-        }
 
         function fitImageToContainer() {
             const containerSize = imageContainer.offsetWidth;
@@ -324,26 +297,29 @@
         }
 
         function combineImages() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            const containerSize = CANVAS_SIZE;
+            ctx.clearRect(0, 0, containerSize, containerSize);
             
-            const containerSize = canvas.width;
-            
+            // 创建圆形裁剪区域
             ctx.save();
             ctx.beginPath();
             ctx.arc(containerSize / 2, containerSize / 2, containerSize / 2, 0, Math.PI * 2);
             ctx.clip();
 
+            // 计算图片在canvas中的位置和大小
             const imgWidth = profileImage.naturalWidth;
             const imgHeight = profileImage.naturalHeight;
             const scaledWidth = imgWidth * scale;
             const scaledHeight = imgHeight * scale;
-            const drawX = (containerSize - scaledWidth) / 2 + translateX * (containerSize / 300);
-            const drawY = (containerSize - scaledHeight) / 2 + translateY * (containerSize / 300);
+            const drawX = containerSize / 2 - scaledWidth / 2 + translateX * (containerSize / 300);
+            const drawY = containerSize / 2 - scaledHeight / 2 + translateY * (containerSize / 300);
 
+            // 绘制头像
             ctx.drawImage(profileImage, drawX, drawY, scaledWidth, scaledHeight);
             
             ctx.restore();
             
+            // 绘制边框
             const overlay = document.getElementById('overlay-image');
             ctx.drawImage(overlay, 0, 0, containerSize, containerSize);
             
