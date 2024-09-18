@@ -24,7 +24,7 @@
             position: absolute;
             top: 50%;
             left: 50%;
-            transform: translate(-50%, -50%);
+            transform-origin: center center;
             max-width: none;
             max-height: none;
         }
@@ -86,21 +86,35 @@
 
         function fitImageToContainer() {
             const containerSize = imageContainer.offsetWidth;
-            const imgSize = Math.max(profileImage.width, profileImage.height);
-            scale = containerSize / imgSize;
-            profileImage.style.width = `${imgSize}px`;
-            profileImage.style.height = `${imgSize}px`;
-            profileImage.style.transform = `translate(-50%, -50%) scale(${scale})`;
+            const imgWidth = profileImage.naturalWidth;
+            const imgHeight = profileImage.naturalHeight;
+            const imgAspectRatio = imgWidth / imgHeight;
+            const containerAspectRatio = 1; // 容器是正方形
+
+            if (imgAspectRatio > containerAspectRatio) {
+                // 图片更宽，以高度为基准
+                scale = containerSize / imgHeight;
+            } else {
+                // 图片更高或等比，以宽度为基准
+                scale = containerSize / imgWidth;
+            }
+
+            profileImage.style.width = `${imgWidth}px`;
+            profileImage.style.height = `${imgHeight}px`;
+            updateImagePosition();
         }
 
         let isDragging = false;
         let startX, startY;
+        let initialDistance = 0;
 
         imageContainer.addEventListener('touchstart', (event) => {
             if (event.touches.length === 1) {
                 isDragging = true;
                 startX = event.touches[0].clientX - translateX;
                 startY = event.touches[0].clientY - translateY;
+            } else if (event.touches.length === 2) {
+                initialDistance = getDistance(event.touches[0], event.touches[1]);
             }
         });
 
@@ -108,6 +122,12 @@
             if (isDragging && event.touches.length === 1) {
                 translateX = event.touches[0].clientX - startX;
                 translateY = event.touches[0].clientY - startY;
+                updateImagePosition();
+            } else if (event.touches.length === 2) {
+                const currentDistance = getDistance(event.touches[0], event.touches[1]);
+                const scaleFactor = currentDistance / initialDistance;
+                scale *= scaleFactor;
+                initialDistance = currentDistance;
                 updateImagePosition();
             }
             event.preventDefault();
@@ -119,6 +139,12 @@
 
         function updateImagePosition() {
             profileImage.style.transform = `translate(calc(-50% + ${translateX}px), calc(-50% + ${translateY}px)) scale(${scale})`;
+        }
+
+        function getDistance(touch1, touch2) {
+            const dx = touch1.clientX - touch2.clientX;
+            const dy = touch1.clientY - touch2.clientY;
+            return Math.sqrt(dx * dx + dy * dy);
         }
 
         saveButton.addEventListener('click', saveImage);
@@ -141,12 +167,14 @@
             ctx.arc(containerSize / 2, containerSize / 2, containerSize / 2, 0, Math.PI * 2);
             ctx.clip();
 
-            const imgSize = Math.max(profileImage.naturalWidth, profileImage.naturalHeight);
-            const scaledSize = imgSize * scale;
-            const drawX = (containerSize - scaledSize) / 2 + translateX;
-            const drawY = (containerSize - scaledSize) / 2 + translateY;
+            const imgWidth = profileImage.naturalWidth;
+            const imgHeight = profileImage.naturalHeight;
+            const scaledWidth = imgWidth * scale;
+            const scaledHeight = imgHeight * scale;
+            const drawX = (containerSize - scaledWidth) / 2 + translateX;
+            const drawY = (containerSize - scaledHeight) / 2 + translateY;
 
-            ctx.drawImage(profileImage, drawX, drawY, scaledSize, scaledSize);
+            ctx.drawImage(profileImage, drawX, drawY, scaledWidth, scaledHeight);
             
             ctx.restore();
             
